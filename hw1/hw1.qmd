@@ -1,0 +1,317 @@
+---
+title: "Biostat 212a Homework 1"
+subtitle: "Due Jan 23, 2024 @ 11:59PM"
+author: "Li Zhang 206305918"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+format:
+  html:
+    theme: cosmo
+    embed-resources: true
+    number-sections: true
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    code-fold: false
+engine: knitr
+knitr:
+  opts_chunk: 
+    fig.align: 'center'
+    # fig.width: 6
+    # fig.height: 4
+    message: FALSE
+    cache: false
+---
+install.packages("reticulate")
+library(reticulate)
+pip install pandas
+
+## Filling gaps in lecture notes (10pts)
+
+Consider the regression model
+$$
+Y = f(X) + \epsilon,
+$$
+where $\operatorname{E}(\epsilon) = 0$. 
+
+### Optimal regression function
+
+Show that the choice
+$$
+f_{\text{opt}}(X) = \operatorname{E}(Y | X)
+$$
+minimizes the mean squared prediction error
+$$
+\operatorname{E}\{[Y - f(X)]^2\},
+$$
+where the expectations averages over variations in both $X$ and $Y$. (Hint: condition on $X$.)
+
+$$
+\begin{align*}
+
+\operatorname{E}\{[Y - f(X)]^2\}&= \operatorname{E}\{[Y - f_{opt}(X) + f_{opt}(X) -f(X)]^2\}\\
+&= \operatorname{E}\{[Y - f_{opt}(X)]^2\} + \operatorname{E}\{[f_{opt}(X) -f(X)]^2\} + 2\operatorname{E}\{[Y - f_{opt}(X)][f_{opt}(X) -f(X)]\}
+
+\end{align*}
+$$
+And we know that
+$$
+2\operatorname{E}\{[Y - f_{opt}(X)][f_{opt}(X) -f(X)]\} = \operatorname{E}\{\operatorname{E}\{{[Y - f_{opt}(X)][f_{opt}(X) -f(X)]|X\}}\} = 0
+$$
+So we have
+$$
+\operatorname{E}\{[Y - f(X)]^2\}= \operatorname{E}\{[Y - f_{opt}(X)]^2\} + \operatorname{E}\{[f_{opt}(X) -F(X)]^2\}
+$$
+The overall expression is minimized when the first term is minimized. This happens when $f_{opt}(X) = \operatorname{E}(Y | X)$. Therefore, $f_{opt}(X) = \operatorname{E}(Y | X)$ minimizes the mean squared prediction error.
+
+
+
+### Bias-variance trade-off
+
+Given an estimate $\hat f$ of $f$, show that the test error at a $x_0$ can be decomposed as
+$$
+\operatorname{E}\{[y_0 - \hat f(x_0)]^2\} = \underbrace{\operatorname{Var}(\hat f(x_0)) + [\operatorname{Bias}(\hat f(x_0))]^2}_{\text{MSE of } \hat f(x_0) \text{ for estimating } f(x_0)} + \underbrace{\operatorname{Var}(\epsilon)}_{\text{irreducible}},
+$$
+where the expectation averages over the variability in $y_0$ and $\hat f$.
+
+$$
+\begin{align*}
+
+\operatorname{E}\{[y_0 - \hat f(x_0)]^2\}&= \operatorname{E}\{[f(x_0) + \epsilon - \hat f(x_0)]^2\}\\&= \operatorname{E}\{f(x_0 - \hat f(x_0)]^2 + \epsilon\}\\ &= \operatorname{E}\{[f(x_0) - \hat f(x_0)]^2\} + 2\operatorname{E}\{f(x_0) - \hat f(x_0)]\epsilon\} + \operatorname{E}\{\epsilon^2\}\\&= \operatorname{E}\{[f(x_0) - \hat f(x_0)]^2\} + 2\operatorname{E}\{f(x_0) - \hat f(x_0)]\epsilon\} + \operatorname{Var}(\epsilon)
+
+\end{align*}
+$$
+Beacuse we assume that $\hat f(x_0)$ and $\epsilon$ are independent, so we have $\operatorname{E}\{f(x_0) - \hat f(x_0)]\epsilon\} = 0$. So we have
+
+$$
+\begin{align*}
+
+\operatorname{E}\{[y_0 - \hat f(x_0)]^2\}&= \operatorname{E}\{[f(x_0) - \hat f(x_0)]^2\} + \operatorname{E}\{\epsilon^2\}\\&= \underbrace{\operatorname{Var}(\hat f(x_0)) + [\operatorname{Bias}(\hat f(x_0))]^2}_{\text{MSE of } \hat f(x_0) \text{ for estimating } f(x_0)} + \underbrace{\operatorname{Var}(\epsilon)}_{\text{irreducible}}
+
+\end{align*}
+$$
+
+## ISL Exercise 2.4.3 (10pts)
+(a)
+```{r}
+
+install.packages("ggplot2")
+library(ggplot2)
+
+squared_bias <- function(x) 0.002 * (-x + 10)^3
+variance <- function(x) 0.002 * x^3
+training_error <- function(x) 2.389 - 0.825*x + 0.176*x^2 - 0.0182*x^3 + 0.00067*x^4
+test_error <- function(x) 3 - 0.6*x + 0.06*x^2
+bayes_error <- function(x) x + 1 - x
+
+x <- seq(0, 10, by = 0.02)
+data <- data.frame(x = x, 
+                   squared_bias = squared_bias(x), 
+                   variance = variance(x), 
+                   training_error = training_error(x), 
+                   test_error = test_error(x), 
+                   bayes_error = bayes_error(x))
+
+ggplot(data, aes(x = x)) +
+  geom_line(aes(y = squared_bias, color = "Squared Bias"), size = 1, linetype = "solid", alpha = 0.8) +
+  geom_line(aes(y = variance, color = "Variance"), size = 1, linetype = "solid", alpha = 0.8) +
+  geom_line(aes(y = training_error, color = "Training Error"), size = 1, linetype = "solid", alpha = 0.8) +
+  geom_line(aes(y = test_error, color = "Test Error"), size = 1, linetype = "solid", alpha = 0.8) +
+  geom_line(aes(y = bayes_error, color = "Bayes Error"), size = 1, linetype = "solid", alpha = 0.8) +
+  labs(title = "Bias-Variance Tradeoff",
+       x = "Model Flexibility",
+       y = "Values") +
+  theme_minimal()
+
+```
+(b)
+**Squared Bias:** The discrepancy between the model's approximation and the true underlying function. As model flexibility increases, a more flexible model becomes increasingly similar to the true function, leading to a diminishing squared bias.
+
+**Variance:** In the case of a model with minimal flexibility, the variance is zero, as the model fit remains independent of the data. However, as flexibility increases, the variance also increases, capturing the noise in a particular training set. The variance curve is a monotonically increasing function as model flexibility grows.
+
+**Training Error:**The training error is determined by the average (squared) difference between model predictions and observations. For very inflexible models, this difference can be substantial, but with increasing flexibility (e.g., by fitting higher-degree polynomials), the additional degrees of freedom reduce the average difference, resulting in a decrease in training error.
+
+**Bayes Error: **This term remains constant since, by definition, it does not depend on X and, consequently, is unaffected by the flexibility of the model.
+
+**Test Error:** The expected test error is defined as Variance + Bias + Bayes error. The test error exhibits a minimum at an intermediate level of flexibility—neither too flexible, where variance dominates, nor too inflexible, where squared bias is high. The test error plot resembles a somewhat deformed upward parabola: initially high for inflexible models, decreasing as flexibility increases to a minimum, and then increasing as variance starts to dominate. The distance between this minimum and the Bayes irreducible error provides insight into how well the best function in the hypothesis space will fit.
+
+
+## ISL Exercise 2.4.4 (10pts)
+
+**Classification Applications:** 
+1.Medical diagnosis. Response: disease present or absent. Predictors: symptoms, test results, patient history, etc. Goal:Inference aiding in diagnosis and treatment planning.
+2. Spam detection. Response: spam or not spam. Predictors: email contents, email sender, etc. Goal: Prediction of spam.
+3. Face recognition. Response: identity of face. Predictors: picture of face, lighting, angle, etc. Goal: Prediction of identity.
+
+**Regression Applications:** 
+1. Cox proportional hazards model. Response: the time until an event occurs (survival time).Predictors: Covariates or features that may influence the hazard rate over time. Goal: Prediction of survival time.
+2.Stock market prediction. Response: price of stock. Predictors: company performance, economic indicators, etc. Goal: Prediction of stock price.
+3. Educational assessment. Response: student's grade. Predictors: student's performance on homework, quizzes, etc. Goal: Prediction of student's grade.
+
+**Cluster Analysis Applications:**
+1. Market segmentation. Response: market segment. Predictors: customer characteristics, purchasing history, etc. Goal: Identification of distinct groups of customers.
+2. Social network analysis. Response: community. Predictors: social network connections, interests, etc. Goal: Identification of distinct groups of people.
+3. Image segmentation. Response: object. Predictors: pixel color, pixel location, etc. Goal: Identification of distinct objects in an image.
+
+## ISL Exercise 2.4.10 (30pts)
+
+Your can read in the `boston` data set directly from url <https://raw.githubusercontent.com/ucla-biostat-212a/2024winter/master/slides/data/Boston.csv>. A documentation of the `boston` data set is [here](https://www.rdocumentation.org/packages/ISLR2/versions/1.3-2/topics/Boston).
+
+::: {.panel-tabset}
+
+#### R
+
+```{r, evalue = F}
+library(tidyverse)
+
+Boston <- read_csv("https://raw.githubusercontent.com/ucla-biostat-212a/2024winter/master/slides/data/Boston.csv", col_select = -1) %>% 
+  print(width = Inf)
+```
+
+#### Python
+
+```{python}
+import pandas as pd
+import io
+import requests
+
+url = "https://raw.githubusercontent.com/ucla-econ-425t/2023winter/master/slides/data/Boston.csv"
+s = requests.get(url).content
+Boston = pd.read_csv(io.StringIO(s.decode('utf-8')), index_col = 0)
+Boston
+```
+
+
+:::
+(a)
+```{r}
+library(ISLR2)
+cat("Number of rows:", nrow(Boston), "\n")
+cat("Number of columns:", ncol(Boston), "\n")
+```
+Rows: Each row corresponds to a single observation or data point. In this case, each row represents information about a specific suburb in Boston.
+Columns: Each column represents a different variable or feature associated with the observations. In this case, each column provides information about a specific aspect of the housing values in these suburbs like 'crim'(per capita crime rate) by town,'zn' (proportion of residential land zoned for lots over 25,000 sq.ft.), etc.
+
+crim:per capita crime rate by town.
+zn:proportion of residential land zoned for lots over 25,000 sq.ft.
+indus:proportion of non-retail business acres per town.
+
+chas
+Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).
+
+nox
+nitrogen oxides concentration (parts per 10 million).
+
+rm
+average number of rooms per dwelling.
+
+age
+proportion of owner-occupied units built prior to 1940.
+
+dis
+weighted mean of distances to five Boston employment centres.
+
+rad
+index of accessibility to radial highways.
+
+tax
+full-value property-tax rate per $10,000.
+
+ptratio
+pupil-teacher ratio by town.
+
+lstat
+lower status of the population (percent).
+
+medv
+median value of owner-occupied homes in $1000s.
+
+(b)
+```{r}
+library(GGally)
+pdf("boston.png", width = 20, height = 8)
+ggpairs(
+  data = as.data.frame(Boston), 
+  mapping = aes(alpha = 0.25)
+) + 
+labs(title = "Boston Data")
+dev.off()
+
+```
+
+
+![](boston.png){width=500px height=200px}
+
+
+Per capita crime rate seems to have a negative linear relationship with proportion of residential land zoned for lots over 25,000 sq.ft.,average number of rooms per dwelling, weighted mean of distances to five Boston employment centres and median value of owner-occupied homes in $1000s.
+Per capita crime rate seems to have a positive linear relationship with proportion of non-retail business acres per town, nitrogen oxides concentration (parts per 10 million),proportion of owner-occupied units built prior to 1940,index of accessibility to radial highways,full-value property-tax rate per $10,000 and lower status of the population (percent).
+'nox' has a negative linear relationship with 'dis'.
+'dis' has a positive linear relationship with 'medv'.
+
+(c)
+just like mentioned in (b), Per capita crime rate seems to have a negative linear relationship with proportion of residential land zoned for lots over 25,000 sq.ft.,average number of rooms per dwelling, weighted mean of distances to five Boston employment centres and median value of owner-occupied homes in $1000s.
+Per capita crime rate seems to have a positive linear relationship with proportion of non-retail business acres per town, nitrogen oxides concentration (parts per 10 million),proportion of owner-occupied units built prior to 1940,index of accessibility to radial highways,full-value property-tax rate per $10,000 and lower status of the population (percent).
+
+## ISL Exercise 3.7.3 (12pts)
+(a) Only ii is correct.
+i: Incorrect. $\hat{\beta_3}$=35 means that college graduates have a starting salary that is $35,000 higher than high school graduates on average.
+ii: Correct. (same reason as above)
+iii: Incorrect.$\hat{\beta_3}$=35 means that on average, college graduates earn more regardless of GPA.
+iv: Incorrect.(same reason as above)
+
+(b)
+$$
+Salary=\hat{\beta_0}+\hat{\beta_1}*GPA+\hat{\beta_2}*IQ+\hat{\beta_3}*Level+\hat{\beta_4}*(GPQ*IQ)+\hat{\beta_5}*(GPQ*Level)
+$$
+Substitute the given values:
+$$
+Salary=50+20*4.0+0.07*110+35+0.01*(4.0*110)-10*(4.0*1)=137.1
+$$
+
+(c)
+False. $\hat{\beta_4}$ is small and it means a small interaction effect. However, to assess statistical significance, we would typically look at the p-value associated with $\hat{\beta_4}$, rather than its magnitude.If the p-value is small (usually below a significance level like 0.05), it provides evidence against the null hypothesis that the interaction effect is zero.
+
+## ISL Exercise 3.7.15 (20pts)
+```{r}
+#Linear regression of per capita crime onto each variable.
+lm.zn = lm(crim~zn, data=Boston)
+lm.indus = lm(crim~indus, data=Boston)
+lm.chas = lm(crim~chas, data=Boston)
+lm.nox = lm(crim~nox, data=Boston)
+lm.rm = lm(crim~rm, data=Boston)
+lm.age = lm(crim~age, data=Boston)
+lm.dis = lm(crim~dis, data=Boston)
+lm.rad = lm(crim~rad, data=Boston)
+lm.tax = lm(crim~tax, data=Boston)
+lm.ptratio = lm(crim~ptratio, data=Boston)
+lm.lstat = lm(crim~lstat, data=Boston)
+lm.medv = lm(crim~medv, data=Boston)
+
+```
+
+```{r}
+summary(lm.zn)
+summary(lm.indus)
+summary(lm.chas)
+summary(lm.nox)
+summary(lm.rm)
+summary(lm.age)
+summary(lm.dis)
+summary(lm.rad)
+summary(lm.tax)
+summary(lm.ptratio)
+summary(lm.lstat)
+summary(lm.medv)
+```
+Significant associations were found between the crime rate (`crim`) and the following variables in the regression models: `zn`, `indus`, `nox`, `rm`, `age`, `dis`, `rad`, `tax`, `ptratio`, `lstat`, and `medv`. 
+However, there was no statistically significant association between crime rate and the `chas` variable.
+
+
+
+
+## Bonus question (20pts)
+
+For multiple linear regression, show that $R^2$ is equal to the correlation between the response vector $\mathbf{y} = (y_1, \ldots, y_n)^T$ and the fitted values $\hat{\mathbf{y}} = (\hat y_1, \ldots, \hat y_n)^T$. That is
+$$
+R^2 = 1 - \frac{\text{RSS}}{\text{TSS}} = [\operatorname{Cor}(\mathbf{y}, \hat{\mathbf{y}})]^2.
+$$
+
