@@ -245,11 +245,13 @@ Columns: Each column represents a different variable or feature associated with 
 
 ```{r}
 library(GGally)
-library(ggplot2)
+
+Boston$chas <- as.factor(Boston$chas)
 
 g <- ggpairs(
   data = as.data.frame(Boston), 
-  mapping = aes(alpha = 0.25)
+  mapping = aes(alpha = 0.25),
+  columns = c("crim", "zn", "indus", "chas", "nox", "rm", "age", "dis", "rad", "tax", "ptratio", "lstat", "medv")
 ) + 
 labs(title = "Boston Data")
 
