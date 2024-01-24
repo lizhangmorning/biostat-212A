@@ -483,6 +483,57 @@ Significant associations were found between the crime rate (`crim`) and the foll
 
 However, there was no statistically significant association between crime rate and the `chas` variable.
 
+
+```{r}
+plot(Boston$zn, Boston$crim, main = "Simple Linear Regression",
+     xlab = "Proportion of Residential Land Zoned for Lots over 25,000 sq.ft.", ylab = "Per Capita Crime Rate by Town", col = "blue")
+abline(lm(crim ~ zn, data = Boston), col = "red") 
+
+plot(Boston$indus, Boston$crim, main = "Simple Linear Regression",
+     xlab = "Proportion of Non-Retail Business Acres per Town", ylab = "Per Capita Crime Rate by Town", col = "blue")
+abline(lm(crim ~ indus, data = Boston), col = "red")
+
+plot(Boston$nox, Boston$crim, main = "Simple Linear Regression",
+     xlab = "Nitrogen Oxides Concentration (parts per 10 million)", ylab = "Per Capita Crime Rate by Town", col = "blue")
+abline(lm(crim ~ nox, data = Boston), col = "red")
+
+plot(Boston$rm, Boston$crim, main = "Simple Linear Regression",
+     xlab = "Average Number of Rooms per Dwelling", ylab = "Per Capita Crime Rate by Town", col = "blue")
+abline(lm(crim ~ rm, data = Boston), col = "red")
+
+plot(Boston$age, Boston$crim, main = "Simple Linear Regression",
+     xlab = "Proportion of Owner-Occupied Units Built Prior to 1940", ylab = "Per Capita Crime Rate by Town", col = "blue")
+abline(lm(crim ~ age, data = Boston), col = "red")
+
+plot(Boston$dis, Boston$crim, main = "Simple Linear Regression",
+     xlab = "Weighted Mean of Distances to Five Boston Employment Centres", ylab = "Per Capita Crime Rate by Town", col = "blue")
+abline(lm(crim ~ dis, data = Boston), col = "red")
+
+plot(Boston$rad, Boston$crim, main = "Simple Linear Regression",
+     xlab = "Index of Accessibility to Radial Highways", ylab = "Per Capita Crime Rate by Town", col = "blue")
+abline(lm(crim ~ rad, data = Boston), col = "red")
+
+plot(Boston$tax, Boston$crim, main = "Simple Linear Regression",
+     xlab = "Full-Value Property-Tax Rate per $10,000", ylab = "Per Capita Crime Rate by Town", col = "blue")
+abline(lm(crim ~ tax, data = Boston), col = "red")
+
+plot(Boston$ptratio, Boston$crim, main = "Simple Linear Regression",
+     xlab = "Pupil-Teacher Ratio by Town", ylab = "Per Capita Crime Rate by Town", col = "blue")
+abline(lm(crim ~ ptratio, data = Boston), col = "red")
+
+plot(Boston$lstat, Boston$crim, main = "Simple Linear Regression",
+     xlab = "Lower Status of the Population (Percent)", ylab = "Per Capita Crime Rate by Town", col = "blue")
+abline(lm(crim ~ lstat, data = Boston), col = "red")
+
+plot(Boston$medv, Boston$crim, main = "Simple Linear Regression",
+     xlab = "Median Value of Owner-Occupied Homes in $1000s", ylab = "Per Capita Crime Rate by Town", col = "blue")
+abline(lm(crim ~ medv, data = Boston), col = "red")
+
+
+```
+
+
+
 ### b
 
 Multiple Linear Regression Models:
