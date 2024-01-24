@@ -22,8 +22,14 @@ knitr:
     cache: false
 ---
 install.packages("reticulate")
+
 library(reticulate)
+
 pip install pandas
+
+```{r}
+sessionInfo()
+```
 
 ## Filling gaps in lecture notes (10pts)
 
@@ -45,24 +51,29 @@ $$
 $$
 where the expectations averages over variations in both $X$ and $Y$. (Hint: condition on $X$.)
 
-$$
-\begin{align*}
 
+
+- **Answer:**
+
+$$
+\begin{align}
 \operatorname{E}\{[Y - f(X)]^2\}&= \operatorname{E}\{[Y - f_{opt}(X) + f_{opt}(X) -f(X)]^2\}\\
 &= \operatorname{E}\{[Y - f_{opt}(X)]^2\} + \operatorname{E}\{[f_{opt}(X) -f(X)]^2\} + 2\operatorname{E}\{[Y - f_{opt}(X)][f_{opt}(X) -f(X)]\}
-
-\end{align*}
+\end{align}
 $$
-And we know that
+
+And, 
+
 $$
 2\operatorname{E}\{[Y - f_{opt}(X)][f_{opt}(X) -f(X)]\} = \operatorname{E}\{\operatorname{E}\{{[Y - f_{opt}(X)][f_{opt}(X) -f(X)]|X\}}\} = 0
 $$
-So we have
+
+So,
+
 $$
 \operatorname{E}\{[Y - f(X)]^2\}= \operatorname{E}\{[Y - f_{opt}(X)]^2\} + \operatorname{E}\{[f_{opt}(X) -F(X)]^2\}
 $$
 The overall expression is minimized when the first term is minimized. This happens when $f_{opt}(X) = \operatorname{E}(Y | X)$. Therefore, $f_{opt}(X) = \operatorname{E}(Y | X)$ minimizes the mean squared prediction error.
-
 
 
 ### Bias-variance trade-off
@@ -73,28 +84,29 @@ $$
 $$
 where the expectation averages over the variability in $y_0$ and $\hat f$.
 
+
+
+- **Answer:**
+
 $$
 \begin{align*}
-
 \operatorname{E}\{[y_0 - \hat f(x_0)]^2\}&= \operatorname{E}\{[f(x_0) + \epsilon - \hat f(x_0)]^2\}\\&= \operatorname{E}\{f(x_0 - \hat f(x_0)]^2 + \epsilon\}\\ &= \operatorname{E}\{[f(x_0) - \hat f(x_0)]^2\} + 2\operatorname{E}\{f(x_0) - \hat f(x_0)]\epsilon\} + \operatorname{E}\{\epsilon^2\}\\&= \operatorname{E}\{[f(x_0) - \hat f(x_0)]^2\} + 2\operatorname{E}\{f(x_0) - \hat f(x_0)]\epsilon\} + \operatorname{Var}(\epsilon)
-
 \end{align*}
 $$
-Beacuse we assume that $\hat f(x_0)$ and $\epsilon$ are independent, so we have $\operatorname{E}\{f(x_0) - \hat f(x_0)]\epsilon\} = 0$. So we have
+
+Because we assume that $\hat f(x_0)$ and $\epsilon$ are independent, so we have $\operatorname{E}\{f(x_0) - \hat f(x_0)]\epsilon\} = 0$. So we have
 
 $$
 \begin{align*}
-
 \operatorname{E}\{[y_0 - \hat f(x_0)]^2\}&= \operatorname{E}\{[f(x_0) - \hat f(x_0)]^2\} + \operatorname{E}\{\epsilon^2\}\\&= \underbrace{\operatorname{Var}(\hat f(x_0)) + [\operatorname{Bias}(\hat f(x_0))]^2}_{\text{MSE of } \hat f(x_0) \text{ for estimating } f(x_0)} + \underbrace{\operatorname{Var}(\epsilon)}_{\text{irreducible}}
-
 \end{align*}
 $$
 
 ## ISL Exercise 2.4.3 (10pts)
-(a)
+
+
 ```{r}
 
-install.packages("ggplot2")
 library(ggplot2)
 
 squared_bias <- function(x) 0.002 * (-x + 10)^3
@@ -112,18 +124,20 @@ data <- data.frame(x = x,
                    bayes_error = bayes_error(x))
 
 ggplot(data, aes(x = x)) +
-  geom_line(aes(y = squared_bias, color = "Squared Bias"), size = 1, linetype = "solid", alpha = 0.8) +
-  geom_line(aes(y = variance, color = "Variance"), size = 1, linetype = "solid", alpha = 0.8) +
-  geom_line(aes(y = training_error, color = "Training Error"), size = 1, linetype = "solid", alpha = 0.8) +
-  geom_line(aes(y = test_error, color = "Test Error"), size = 1, linetype = "solid", alpha = 0.8) +
-  geom_line(aes(y = bayes_error, color = "Bayes Error"), size = 1, linetype = "solid", alpha = 0.8) +
+  geom_line(aes(y = squared_bias, color = "Squared Bias"), linewidth = 1, linetype = "solid", alpha = 0.8) +
+  geom_line(aes(y = variance, color = "Variance"), linewidth = 1, linetype = "solid", alpha = 0.8) +
+  geom_line(aes(y = training_error, color = "Training Error"), linewidth = 1, linetype = "solid", alpha = 0.8) +
+  geom_line(aes(y = test_error, color = "Test Error"), linewidth = 1, linetype = "solid", alpha = 0.8) +
+  geom_line(aes(y = bayes_error, color = "Bayes Error"), linewidth = 1, linetype = "solid", alpha = 0.8) +
   labs(title = "Bias-Variance Tradeoff",
        x = "Model Flexibility",
        y = "Values") +
   theme_minimal()
 
 ```
-(b)
+
+
+
 **Squared Bias:** The discrepancy between the model's approximation and the true underlying function. As model flexibility increases, a more flexible model becomes increasingly similar to the true function, leading to a diminishing squared bias.
 
 **Variance:** In the case of a model with minimal flexibility, the variance is zero, as the model fit remains independent of the data. However, as flexibility increases, the variance also increases, capturing the noise in a particular training set. The variance curve is a monotonically increasing function as model flexibility grows.
@@ -138,18 +152,27 @@ ggplot(data, aes(x = x)) +
 ## ISL Exercise 2.4.4 (10pts)
 
 **Classification Applications:** 
-1.Medical diagnosis. Response: disease present or absent. Predictors: symptoms, test results, patient history, etc. Goal:Inference aiding in diagnosis and treatment planning.
+
+1. Medical diagnosis. Response: disease present or absent. Predictors: symptoms, test results, patient history, etc. Goal:Inference aiding in diagnosis and treatment planning.
+
 2. Spam detection. Response: spam or not spam. Predictors: email contents, email sender, etc. Goal: Prediction of spam.
+
 3. Face recognition. Response: identity of face. Predictors: picture of face, lighting, angle, etc. Goal: Prediction of identity.
 
 **Regression Applications:** 
+
 1. Cox proportional hazards model. Response: the time until an event occurs (survival time).Predictors: Covariates or features that may influence the hazard rate over time. Goal: Prediction of survival time.
-2.Stock market prediction. Response: price of stock. Predictors: company performance, economic indicators, etc. Goal: Prediction of stock price.
+
+2. Stock market prediction. Response: price of stock. Predictors: company performance, economic indicators, etc. Goal: Prediction of stock price.
+
 3. Educational assessment. Response: student's grade. Predictors: student's performance on homework, quizzes, etc. Goal: Prediction of student's grade.
 
 **Cluster Analysis Applications:**
+
 1. Market segmentation. Response: market segment. Predictors: customer characteristics, purchasing history, etc. Goal: Identification of distinct groups of customers.
+
 2. Social network analysis. Response: community. Predictors: social network connections, interests, etc. Goal: Identification of distinct groups of people.
+
 3. Image segmentation. Response: object. Predictors: pixel color, pixel location, etc. Goal: Identification of distinct objects in an image.
 
 ## ISL Exercise 2.4.10 (30pts)
@@ -182,83 +205,230 @@ Boston
 
 
 :::
-(a)
+### a
 ```{r}
 library(ISLR2)
 cat("Number of rows:", nrow(Boston), "\n")
 cat("Number of columns:", ncol(Boston), "\n")
 ```
 Rows: Each row corresponds to a single observation or data point. In this case, each row represents information about a specific suburb in Boston.
+
 Columns: Each column represents a different variable or feature associated with the observations. In this case, each column provides information about a specific aspect of the housing values in these suburbs like 'crim'(per capita crime rate) by town,'zn' (proportion of residential land zoned for lots over 25,000 sq.ft.), etc.
 
-crim:per capita crime rate by town.
-zn:proportion of residential land zoned for lots over 25,000 sq.ft.
-indus:proportion of non-retail business acres per town.
+  `crim`: per capita crime rate by town.
+  
+  `zn`: proportion of residential land zoned for lots over 25,000 sq.ft.
+  
+  `indus`: proportion of non-retail business acres per town.
+  
+  `chas`: Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).
+  
+  `nox`: nitrogen oxides concentration (parts per 10 million).
+  
+  `rm`: average number of rooms per dwelling.
+  
+  `age`: proportion of owner-occupied units built prior to 1940.
+  
+  `dis`: weighted mean of distances to five Boston employment centres.
+  
+  `rad`: index of accessibility to radial highways.
+  
+  `tax`: full-value property-tax rate per $10,000.
+  
+  `ptratio`: pupil-teacher ratio by town.
+  
+  `lstat`: lower status of the population (percent).
+  
+  `medv`: median value of owner-occupied homes in $1000s.
 
-chas
-Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).
+### b
 
-nox
-nitrogen oxides concentration (parts per 10 million).
-
-rm
-average number of rooms per dwelling.
-
-age
-proportion of owner-occupied units built prior to 1940.
-
-dis
-weighted mean of distances to five Boston employment centres.
-
-rad
-index of accessibility to radial highways.
-
-tax
-full-value property-tax rate per $10,000.
-
-ptratio
-pupil-teacher ratio by town.
-
-lstat
-lower status of the population (percent).
-
-medv
-median value of owner-occupied homes in $1000s.
-
-(b)
 ```{r}
 library(GGally)
-pdf("boston.png", width = 20, height = 8)
-ggpairs(
+library(ggplot2)
+
+g <- ggpairs(
   data = as.data.frame(Boston), 
   mapping = aes(alpha = 0.25)
 ) + 
 labs(title = "Boston Data")
-dev.off()
+
+ggsave("boston.png", plot = g, width = 20, height = 8)
 
 ```
 
+![](/Users/zhangli/212a_hw/hw1/boston.png)
 
-![](boston.png){width=500px height=200px}
+
+(1) The correlation coefficient between `nox` and `indus` is 0.764, statistically significant at the 0.001 level. 
+
+    This positive correlation suggests a strong linear relationship, indicating that as the concentration of nitrogen oxides increases, the proportion of non-retail business acres also tends to increase. 
+
+    It does not imply causation but this positive correlation may be attributed to factors such as concentration of industrial activities, urban planning, land use, and environmental policies which may need further analysis.
+
+(2) The correlation coefficient between `medv` and `lstat` is -0.738, statistically significant at the 0.001 level. 
+
+    This negative correlation suggests a strong linear relationship, indicating that as the median value of homes decreases, the lower status of the population tends to increase. 
+
+    In other words, areas with higher proportions of lower-status populations tend to have lower median home values. 
+
+(3) The correlation coefficient between `tax` and `indus` is 0.721, statistically significant at the 0.001 level. 
+
+    This positive correlation suggests that towns with a higher proportion of non-retail business acres tend to have higher property-tax rates. 
 
 
-Per capita crime rate seems to have a negative linear relationship with proportion of residential land zoned for lots over 25,000 sq.ft.,average number of rooms per dwelling, weighted mean of distances to five Boston employment centres and median value of owner-occupied homes in $1000s.
-Per capita crime rate seems to have a positive linear relationship with proportion of non-retail business acres per town, nitrogen oxides concentration (parts per 10 million),proportion of owner-occupied units built prior to 1940,index of accessibility to radial highways,full-value property-tax rate per $10,000 and lower status of the population (percent).
-'nox' has a negative linear relationship with 'dis'.
-'dis' has a positive linear relationship with 'medv'.
+### c
 
-(c)
-just like mentioned in (b), Per capita crime rate seems to have a negative linear relationship with proportion of residential land zoned for lots over 25,000 sq.ft.,average number of rooms per dwelling, weighted mean of distances to five Boston employment centres and median value of owner-occupied homes in $1000s.
-Per capita crime rate seems to have a positive linear relationship with proportion of non-retail business acres per town, nitrogen oxides concentration (parts per 10 million),proportion of owner-occupied units built prior to 1940,index of accessibility to radial highways,full-value property-tax rate per $10,000 and lower status of the population (percent).
+  **Negative Relationships:**
+
+`zn`: As proportion of residential land zoned for lots over 25,000 sq.ft. increases, per capita crime rate tends to decrease.
+
+`rm`: An increase in the average number of rooms per dwelling is associated with a decrease in per capita crime rate.
+
+`dis`: Per capita crime rate decreases as the weighted mean distance to employment centres increases.
+
+`medv`: Higher median home values are associated with lower per capita crime rates.
+
+  **Positive Relationships:**
+
+`indus`: An increase in non-retail business acreage is associated with an increase in per capita crime rate.
+
+`nox`: Higher nitrogen oxides concentration is associated with higher per capita crime rates.
+
+`age`: Areas with a higher proportion of older buildings tend to have higher per capita crime rates.
+
+`rad`: Higher accessibility to radial highways is associated with higher per capita crime rates.
+
+`tax`: Areas with higher property tax rates tend to have higher per capita crime rates.
+
+`lstat`: An increase in the lower status of the population is associated with higher per capita crime rates.
+
+
+### d
+
+```{r}
+par(mfrow=c(1,3))
+boxplot(Boston$crim, xlab = "crim")
+boxplot(Boston$tax, xlab = "tax")
+boxplot(Boston$ptratio, xlab = "ptratio")
+print(range(Boston$crim))
+print(range(Boston$tax))
+print(range(Boston$ptratio))
+```
+  - Per capita crime rate by town:
+
+     - Majority of towns have very low crime rates, possibly between zero to five.
+     
+     - Some areas exhibit very high crime rates, exceeding 70.
+     Outliers range from 10 to above 80, and many outlier towns do not have extremely high crime rates.
+     
+     Overall, the data ranges from 0 to above 80.
+     
+  - Full-value property-tax rate per $10,000:
+  
+     - No outliers are observed in property tax rates.
+     
+     - The median value near 300 suggests skewed data, ranging from 187 to 711.
+
+  - Pupil-teacher ratio by town:
+
+    - Outliers are present in the lower extreme of the box plot.
+    
+    - The data ranges from 12.6 to 22.The median value for pupil-teacher ratio is around 19.
+
+
+### e
+
+```{r}
+table(Boston$chas)
+```
+- The table above shows that 35 suburbs bound the Charles River.
+
+### f
+
+```{r}
+median(Boston$ptratio)
+```
+- The median pupil-teacher ratio among the towns in this data set is 19.05.
+
+### g
+
+```{r}
+Boston[Boston$medv == min(Boston$medv), ]
+```
+- There are two suburbs (399 & 406) that have the lowest median property values.
+
+```{r}
+library(dplyr)
+Boston_percentiles <- sapply(Boston[ ,-4], function(x) rank(x)/length(x)) %>%
+  as.data.frame()
+
+Boston_percentiles[c(399, 406),]
+```
+  - High Values:
+  
+     - `crim`: Both areas show close to maximum crime rates.
+     
+     - `indus`: Both have a high proportion of non-retail business acres.
+     
+  - Low Values:
+
+     - `zn`: Both areas have a low proportion of residential land zoned for large lots.
+     
+     - `rm`: Both show a low average number of rooms per dwelling.
+     
+     - `dis`: Both exhibit a low mean distance to employment centers.
+     
+     - `ptratio`: Both indicate a low pupil-teacher ratio.
+     
+     - `medv`: Both have a low median value of owner-occupied homes.
+  
+  - High Values with Notes:
+
+     - `nox`, `rad` : Both show a high concentration. Both areas indicate high accessibility to highways. Possibly near highways.
+     
+     - `age` : Both have a high proportion of older units built before 1940.
+
+
+### h
+
+  - More than seven rooms per dwelling:
+```{r}
+sum(Boston$rm > 7)
+```
+
+  - More than eight rooms per dwelling:
+```{r}
+Boston_gt_8rooms <- Boston[Boston$rm > 8, ]
+nrow(Boston_gt_8rooms)
+```
+
+```{r}
+prop.table(table(Boston_gt_8rooms$chas))
+```
+ - 15.38% were bound by the Charles River.
+ 
+```{r}
+summary(Boston)
+summary(Boston_gt_8rooms)
+```
+These findings suggest that census tracts with *more than eight rooms per dwelling* generally have **favorable indicators** such as low crime rates, high residential land proportions, low industrial presence, proximity to the Charles River, low nitrogen oxides concentration, spacious dwellings, newer units, moderate accessibility, moderate tax rates, low pupil-teacher ratios, low lower status percentages, and higher median home values.
+
 
 ## ISL Exercise 3.7.3 (12pts)
-(a) Only ii is correct.
-i: Incorrect. $\hat{\beta_3}$=35 means that college graduates have a starting salary that is $35,000 higher than high school graduates on average.
-ii: Correct. (same reason as above)
-iii: Incorrect.$\hat{\beta_3}$=35 means that on average, college graduates earn more regardless of GPA.
-iv: Incorrect.(same reason as above)
 
-(b)
+### a
+
+Only ii is correct.
+
+$\hat{\beta_3}$=35 means that college graduates have a starting salary that is $35,000 higher than high school graduates on average.
+
+There are no interaction terms involving Gender, so the effect of Gender does not depend on the values of GPA or IQ.
+
+The effect of 35 is unconditional, for any fixed values of the other predictors GPA and IQ.
+
+### b
+
 $$
 Salary=\hat{\beta_0}+\hat{\beta_1}*GPA+\hat{\beta_2}*IQ+\hat{\beta_3}*Level+\hat{\beta_4}*(GPQ*IQ)+\hat{\beta_5}*(GPQ*Level)
 $$
@@ -267,12 +437,17 @@ $$
 Salary=50+20*4.0+0.07*110+35+0.01*(4.0*110)-10*(4.0*1)=137.1
 $$
 
-(c)
+### c
+
 False. $\hat{\beta_4}$ is small and it means a small interaction effect. However, to assess statistical significance, we would typically look at the p-value associated with $\hat{\beta_4}$, rather than its magnitude.If the p-value is small (usually below a significance level like 0.05), it provides evidence against the null hypothesis that the interaction effect is zero.
 
 ## ISL Exercise 3.7.15 (20pts)
+
+### a
+
+Simple Linear Regression Models:
 ```{r}
-#Linear regression of per capita crime onto each variable.
+
 lm.zn = lm(crim~zn, data=Boston)
 lm.indus = lm(crim~indus, data=Boston)
 lm.chas = lm(crim~chas, data=Boston)
@@ -303,10 +478,76 @@ summary(lm.lstat)
 summary(lm.medv)
 ```
 Significant associations were found between the crime rate (`crim`) and the following variables in the regression models: `zn`, `indus`, `nox`, `rm`, `age`, `dis`, `rad`, `tax`, `ptratio`, `lstat`, and `medv`. 
+
 However, there was no statistically significant association between crime rate and the `chas` variable.
 
+### b
 
+Multiple Linear Regression Models:
 
+```{r}
+model_multiple <- lm(crim ~ ., data = Boston)
+summary(model_multiple)
+```
+For the predictors zn, dis, rad, and medv, we can reject the null hypothesis as their p-values are less than 0.05.
+
+### c
+
+```{r}
+
+univariate_coefficients <- sapply(Boston[, -1], function(x) lm(crim ~ x, data = Boston)$coefficients[2])
+multiple_coefficients <- coef(lm(crim ~ ., data = Boston))
+coefficients_df <- data.frame(Univariate = univariate_coefficients, Multiple = multiple_coefficients[-1], Predictor = colnames(Boston)[-1])
+
+library(ggplot2)
+ggplot(coefficients_df, aes(x = Univariate, y = Multiple, label = Predictor)) +
+  geom_point(position = position_jitter(width = 0.2, height = 0.1), size = 3, color = "blue", alpha = 0.7) +
+  geom_text(hjust = 0, vjust = 0, size = 4) +
+  labs(title = "Comparison of Univariate and Multiple Regression Coefficients",
+       x = "Univariate Coefficients", y = "Multiple Coefficients") 
+```
+
+### d
+
+```{r}
+
+lm_zn <- lm(crim ~ poly(zn, 3), data = Boston)
+summary(lm_zn) # 1,2 orders are siginificant
+
+lm_indus <- lm(crim ~ poly(indus, 3), data = Boston)
+summary(lm_indus) # 1,2,3 orders are siginificant
+
+# lm.chas = lm(crim~poly(chas,3)) : qualitative predictor
+
+lm_nox <- lm(crim ~ poly(nox, 3), data = Boston)
+summary(lm_nox) # 1,2,3 orders are siginificant
+
+lm_rm <- lm(crim ~ poly(rm, 3), data = Boston)
+summary(lm_rm) # 1,2 orders are siginificant
+
+lm_age <- lm(crim ~ poly(age, 3), data = Boston)
+summary(lm_age) # 1,2,3 orders are siginificant
+
+lm_dis <- lm(crim ~ poly(dis, 3), data = Boston)
+summary(lm_dis) # 1,2,3 orders are siginificant
+
+lm_rad <- lm(crim ~ poly(rad, 3), data = Boston)
+summary(lm_rad) # 1,2 orders are siginificant
+
+lm_tax <- lm(crim ~ poly(tax, 3), data = Boston)
+summary(lm_tax) # 1,2 orders are siginificant
+
+lm_ptratio <- lm(crim ~ poly(ptratio, 3), data = Boston)
+summary(lm_ptratio) # 1,2,3 orders are siginificant
+
+lm_lstat <- lm(crim ~ poly(lstat, 3), data = Boston)
+summary(lm_lstat) # 1,2 orders are siginificant
+
+lm_medv <- lm(crim ~ poly(medv, 3), data = Boston)
+summary(lm_medv) # 1,2,3 orders are siginificant
+
+```
+**Answer:** Yes for most, except for chas. See above inline comments.
 
 ## Bonus question (20pts)
 
@@ -315,3 +556,31 @@ $$
 R^2 = 1 - \frac{\text{RSS}}{\text{TSS}} = [\operatorname{Cor}(\mathbf{y}, \hat{\mathbf{y}})]^2.
 $$
 
+**Answer:**
+Recall that the coefficient of determination is defined as:
+$$R^2 = 1 - \frac{\text{RSS}}{\text{TSS}}$$
+Where RSS is the residual sum of squares and TSS is the total sum of squares.
+
+The total sum of squares is defined as:
+$$\text{TSS} = \sum_{i=1}^n (y_i - \bar{y})^2$$
+Where $\bar{y} = \frac{1}{n}\sum_{i=1}^n y_i$ is the mean of the response values. 
+
+The residual sum of squares is defined as: 
+$$\text{RSS} = \sum_{i=1}^n (y_i - \hat{y}_i)^2$$
+Where $\hat{y}_i$ is the fitted values from the regression.
+
+Now the correlation between the response vector $\mathbf{y}$ and fitted values $\hat{\mathbf{y}}$ is defined as:
+$$\operatorname{Cor}(\mathbf{y}, \hat{\mathbf{y}}) = \frac{\sum_{i=1}^n (y_i - \bar{y})(\hat{y}_i - \bar{\hat{y}})}{\sqrt{\sum_{i=1}^n(y_i - \bar{y})^2\sum_{i=1}^n(\hat{y}_i - \bar{\hat{y}})^2}}$$
+
+Note that $\bar{\hat{y}} = \frac{1}{n}\sum_{i=1}^n \hat{y}_i = \bar{y}$ since the fitted values $\hat{y}_i$ have the same mean as the response values $y_i$. 
+
+Therefore, the correlation simplifies to:
+$$\operatorname{Cor}(\mathbf{y}, \hat{\mathbf{y}}) = \frac{\sum_{i=1}^n (y_i - \bar{y})(\hat{y}_i - \bar{y})}{\sqrt{TSS \cdot RSS}}$$
+
+Squaring both sides gives:
+$$[\operatorname{Cor}(\mathbf{y}, \hat{\mathbf{y}})]^2 = \frac{(\sum_{i=1}^n (y_i - \bar{y})(\hat{y}_i - \bar{y}))^2}{TSS \cdot RSS}$$
+
+But the numerator is just TSS - RSS, so:
+$$[\operatorname{Cor}(\mathbf{y}, \hat{\mathbf{y}})]^2 = \frac{TSS - RSS}{TSS} = 1 - \frac{RSS}{TSS} = R^2$$
+
+Therefore, we have shown that $R^2 = [\operatorname{Cor}(\mathbf{y}, \hat{\mathbf{y}})]^2$.
