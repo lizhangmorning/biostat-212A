@@ -1,0 +1,399 @@
+---
+title: "Biostat 212a Homework 2"
+subtitle: "Due Feb 6, 2024 @ 11:59PM"
+author: "Li Zhang 206305918"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+format:
+  html:
+    theme: cosmo
+    embed-resources: true
+    number-sections: true
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    code-fold: false
+engine: knitr
+knitr:
+  opts_chunk: 
+    fig.align: 'center'
+    # fig.width: 6
+    # fig.height: 4
+    message: FALSE
+    cache: false
+---
+```{r}
+sessionInfo()
+```
+## ISL Exercise 4.8.1 (10pts)
+
+(4.2): $$p(X) = \frac{e^{\beta_0+\beta_1 X}}{1 + e^{\beta_0+\beta_1 X}}$$ 
+
+(4.3): $$\frac{p(X)}{1 - p(X)} = e^{\beta_0 + \beta_1 X}$$ 
+
+To prove (4.2) and (4.3) are equal, 
+
+we can regard $e^{\beta_0+\beta_1 X}$ as a new variable $Z$, then (4.2) can be rewrote as $Z = p(X)(1+Z)$, 
+
+so $Z=\frac{p(X)}{1-p(X)}$, which is the same as (4.3).
+
+## ISL Exercise 4.8.6 (10pts)
+
+(a)
+According to (4.2), we know that 
+$$p(X) = \frac{e^{\hat{\beta}_0+\hat{\beta}_1 X_1+\hat{\beta}_2 X_2}}{1 + e^{\hat{\beta}_0+\hat{\beta}_1 X_1+\hat{\beta}_2 X_2}}$$
+
+So, $$p(X) = \frac{e^{-6+0.05*40+1*3.5}}{1 + e^{-6+0.05*40+1*3.5}} = 0.3775407 $$
+
+So the probability that a student who studies for 40 hours and has an undergrad GPA of 3.5 gets an A in the class is **0.3775407**.
+
+(b)
+using $p(X) = 0.5$ in above equation (a) we have
+$$
+0.5 = \frac{e^{-6+0.05X_1+1*3.5}}{1 + e^{-6+0.05X_1+1*3.5}}\\
+$$
+
+so,
+
+$$e^{-6+0.05X_1+1*3.5} = 1$$
+$$-6+0.05X_1+1*3.5 = 0$$
+$$0.05X_1 = 6-3.5$$
+$$X_1 = 50$$
+the student in part (a) need to study **50 hours** to have a 50% chance of getting an A in the class.
+
+
+## ISL Exercise 4.8.9 (10pts)
+
+(a)
+we know that 
+$$
+odds = \frac{p(X)}{1-p(X)} 
+$$
+so, when odds = 0.37, we have 
+$$
+0.37 = \frac{p(X)}{1-p(X)}
+$$
+
+$$p(X) = 0.27$$
+
+27% of the people will default when the odds of default is 0.37.
+
+(b)
+when $p(X) = 0.16$, we have
+$$
+odds = \frac{p(X)}{1-p(X)} = \frac{0.16}{1-0.16} = 0.19
+$$
+
+so the odds of default is 0.19 when the probability of default is 0.16.
+
+
+## ISL Exercise 4.8.13 (a)-(i) (50pts)
+
+(a)
+
+
+```{r}
+library(ISLR2)
+str(Weekly)
+head(Weekly)
+```
+
+```{r}
+summary(Weekly)
+```
+
+```{r}
+cor(Weekly[-9])
+```
+
+```{r}
+library(GGally)
+pairs(~ Year + Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume + Today, Weekly)
+ggpairs(Weekly)
+```
+
+```{r}
+# Create volume bar chart
+library(ggplot2)
+ggplot(data = Weekly, aes(x = Year, y = Volume)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Volume Fluctuation over Time", x = "Year", y = "Volume") +
+  theme_minimal()
+```
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Add a column for week of the year
+Weekly$Week <- 1:nrow(Weekly)
+
+# Group data by year and get the first week of each year
+year_breaks <- Weekly %>%
+  group_by(Year) %>%
+  summarize(Week = min(Week))
+
+# Daily Trading Volume over Time with LOESS Smooth
+p1 <- ggplot(Weekly, aes(x = Week, y = Volume)) + 
+  geom_line(color = "blue") + 
+  geom_smooth(method = "loess", se = FALSE, color = "red") +
+  scale_x_continuous(breaks = year_breaks$Week, labels = year_breaks$Year) +  
+  labs(title = "Daily Trading Volume over Time with LOESS Smooth", x = "Year", y = "Volume") +  
+  theme_minimal()
+print(p1)
+
+# Daily Trading Volume with Moving Average
+Weekly$Moving_Average <- zoo::rollmean(Weekly$Volume, k = 10, fill = NA)
+
+p2 <- ggplot(Weekly, aes(x = Week)) +
+  geom_line(aes(y = Volume), color = "blue", alpha = 0.5) +
+  geom_line(aes(y = Moving_Average), color = "red") +
+  scale_x_continuous(breaks = year_breaks$Week, labels = year_breaks$Year) +  
+  labs(title = "Daily Trading Volume with Moving Average", x = "Year", y = "Volume") +  
+  theme_minimal()
+print(p2)
+```
+
+
+```{r}
+prop.table(table(Weekly$Direction))
+```
+
+
+The daily trading volume of shares has exhibited an upward trend over time, punctuated by occasional fluctuations. 
+
+Since the 1990s, there has been a notable surge in the trading volume of shares. This trend reached its highest point around 2009, but began to decline starting from 2010, probably due to the financial crisis in 2008.
+
+The proportion of the market going up is 55.56% and the proportion of the market going down is 44.44%.
+
+
+(b)
+
+```{r}
+glm.fit <- glm(Direction ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume, 
+               data = Weekly,
+               family = binomial)
+summary(glm.fit)
+```
+Lag2 is statistically significant at the 5% level.
+
+(c)
+
+```{r}
+glm.prob <- predict(glm.fit, type = 'response')
+glm.pred <- rep('Down',1089)
+glm.pred[glm.prob > 0.5] <- 'Up'
+table(glm.pred, Weekly[, "Direction"])
+```
+
+
+$$
+Accuracy = \frac{TP+TN}{TP+FP+FN+TN} = \frac{557+54}{557+54+48+430} = 0.5610652
+$$
+
+Overall fraction of correct predictions is 0.5611.
+
+Types of Mistakes Made by Logistic Regression as Indicated by the Confusion Matrix:
+
+- False Positives(FP):
+
+The model incorrectly predicted 430 instances of the "Down" class as "Up". This suggests that the model may be overly optimistic or sensitive in certain situations, incorrectly predicting instances of actual decreases as increases.
+
+- False Negatives(FN):
+
+The model incorrectly predicted 48 instances of the "Up" class as "Down". This indicates that the model may have missed some important patterns or features in certain situations, incorrectly predicting instances of actual increases as decreases.
+
+
+(d)
+```{r}
+
+training_data <- subset(Weekly, Year <= 2008)
+held_out_data <- subset(Weekly, Year >= 2009)
+
+logit_model <- glm(Direction ~ Lag2, data = training_data, family = binomial)
+
+predicted_probs <- predict(logit_model, newdata = held_out_data, type = "response")
+
+predicted_classes <- ifelse(predicted_probs > 0.5, "Up", "Down")
+
+confusion_matrix <- table(predicted_classes, held_out_data$Direction)
+print(confusion_matrix)
+```
+
+$$
+Accuracy = \frac{TP+TN}{TP+FP+FN+TN} = \frac{56+9}{56+9+34+5} = 0.625
+$$
+
+Overall fraction of correct predictions for the held out data is 0.625.
+
+(e)
+```{r}
+library(MASS)
+
+# Fit the LDA model using Lag2 as the predictor
+lda_model <- lda(Direction ~ Lag2, data = training_data)
+
+predicted_classes_lda <- predict(lda_model, newdata = held_out_data)$class
+
+confusion_matrix_lda <- table(predicted_classes_lda, held_out_data$Direction)
+print(confusion_matrix_lda)
+sum(diag(confusion_matrix_lda)) / sum(confusion_matrix_lda)
+```
+Overall Accuracy (LDA): 0.625
+
+(f)
+```{r}
+# Fit the QDA model using Lag2 as the predictor
+qda_model <- qda(Direction ~ Lag2, data = training_data)
+
+predicted_classes_qda <- predict(qda_model, newdata = held_out_data)$class
+
+confusion_matrix_qda <- table(predicted_classes_qda, held_out_data$Direction)
+print(confusion_matrix_qda)
+
+sum(diag(confusion_matrix_qda)) / sum(confusion_matrix_qda)
+```
+Overall Accuracy (QDA): 0.5865385
+
+(g)
+```{r}
+library(class)
+library(caret)
+# Fit the KNN model using Lag2 as the predictor
+set.seed(1)
+predicted_knn <- knn(train = data.frame(Lag2 = training_data$Lag2), 
+                  test = data.frame(Lag2 = held_out_data$Lag2), 
+                  cl = training_data$Direction, 
+                  k = 1, 
+                  prob = T)
+
+confusionMatrix(data = predicted_knn, 
+                reference = held_out_data$Direction, 
+                positive = "Up")
+
+```
+The KNN model has an overall accuracy of 0.5
+
+(h)
+```{r}
+library(e1071)
+
+# Fit the Naive Bayes model using Lag2 as the predictor
+nb_model <- naiveBayes(Direction ~ Lag2, data = training_data)
+
+nb_pred <- predict(nb_model, newdata = held_out_data, type = "class")
+
+conf_matrix_nb <- table(Actual_Direction = held_out_data$Direction, Predicted_Direction = nb_pred)
+print(conf_matrix_nb)
+
+sum(diag(conf_matrix_nb)) / sum(conf_matrix_nb)
+```
+Overall Accuracy (Naive Bayes): 0.5865385
+
+(i)
+
+LDA & Logistic Regression have the highest accuracy of 0.625 after comparing the accuracy of all the models.
+
+## Bonus question: ISL Exercise 4.8.13 Part (j) (30pts)
+
+```{r}
+library(caret)
+
+training_data$Today <- NULL
+training_data$Moving_Average <- NULL
+
+ctrl <- trainControl(method = "repeatedcv",
+                     number = 5,
+                     repeats = 5)
+
+set.seed(111)
+
+knn_train <- train(y = training_data$Direction,
+                   x = training_data[ ,-8],
+                   method = "knn",
+                   metric = "Accuracy",
+                   preProcess = c("center", "scale"),
+                   tuneGrid = expand.grid(k = seq(1, 100, 2)),
+                   trControl = ctrl)
+
+caret::varImp(knn_train)
+knn_train
+```
+```{r}
+ggplot(knn_train) +
+  geom_smooth() +
+  theme_light() +
+  scale_y_continuous(labels = scales::percent_format()) +
+  ggtitle("KNN - 'K' Selection (5-repeated 5-fold cross-validation)")
+```
+```{r}
+knn_pred <- predict(knn_train, newdata = held_out_data)
+
+confusionMatrix(data = knn_pred, 
+                reference = held_out_data$Direction, 
+                positive = "Up")
+```
+the accuracy of the KNN model is 0.5769, which is a little higher than the KNN model in part (g).
+
+## Bonus question: ISL Exercise 4.8.4 (30pts)
+
+(a)
+
+Given that $X$ is uniformly distributed on the interval$[0, 1]$, the range of $X$ closest to a test observation with$X = x$will be $[x - 0.1x, x + 0.1x] = [0.9x, 1.1x]$.
+
+the fraction of available observations that will be used to make the prediction for a given test observation with $X = x$ is:
+
+$$
+\frac{1.1x - 0.9x}{1-0} = 0.2x
+$$
+
+To find the average fraction of observations used across all possible values of $X$, we integrate this expression over the range of $X$:
+
+$$
+\int_{0}^{1} 0.2x dx = 0.2 \int_{0}^{1} x dx = 0.2 \left[\frac{x^2}{2}\right]_{0}^{1} = 0.2 \left[\frac{1^2}{2} - \frac{0^2}{2}\right] = 0.2 \times 0.5 = 0.1
+$$
+
+So, on average, 10% of the available observations will be used to make the prediction for a given test observation.
+
+(b)
+
+Similarly, given that $(X_1, X_2)$ are uniformly distributed on the interval $[0, 1] × [0, 1]$, the range of $X_1$ closest to a test observation with $X_1 = x_1$ will be $[x_1 - 0.1x_1, x_1 + 0.1x_1] = [0.9x_1, 1.1x_1]$, and the range of $X_2$ closest to a test observation with $X_2 = x_2$ will be $[0.9x_2, 1.1x_2]$.
+
+The fraction of available observations that will be used to make the prediction for a given test observation with $(X_1, X_2) = (x_1, x_2)$ is:
+
+$$
+\frac{1.1x_1 - 0.9x_1}{1-0} \times \frac{1.1x_2 - 0.9x_2}{1-0} = 0.2x_1 \times 0.2x_2 = 0.04x_1x_2
+$$
+
+To find the average fraction of observations used across all possible values of $(X_1, X_2)$, we integrate this expression over the range of $X_1$ and $X_2$:
+
+$$
+\int_{0}^{1} \int_{0}^{1} 0.04x_1x_2 dx_1 dx_2 = 0.04 \int_{0}^{1} x_2 dx_2 \int_{0}^{1} x_1 dx_1 = 0.04 \left[\frac{x_2^2}{2}\right]_{0}^{1} \left[\frac{x_1^2}{2}\right]_{0}^{1} = 0.04 \times 0.5 \times 0.5 = 0.01
+$$
+
+So, on average, 1% of the available observations will be used to make the prediction for a given test observation.
+
+(c)
+
+Using identical reasoning to part (b), when $p = 100$, $0.1^{100}$ of the available observations will be used to make the prediction.
+
+(d)
+
+When p is large, the fraction of available observations that will be used to make the prediction for a given test observation is $0.1^p$.
+
+As p increases, this fraction decreases exponentially. This means that as p increases, the number of training observations "near" any given test observation decreases exponentially. 
+
+This is a drawback of KNN when p is large because the prediction for a given test observation will be based on a very small number of training observations, which may not be sufficient to make an accurate prediction.
+
+(e)
+
+If $p=1$, $d(length) = 0.1^{1/1} = 0.1$
+
+If $p=2$, $d(length) = 0.1^{1/2} = 0.32$
+
+If $p=100$, $d(length) = 0.1^{1/100} = 0.977$
+  
+  As p increases the side length converges to 1, and this shows that the hypercube centered around the test observation with 10% of the test observation needs to be nearly the same size as the hypercube with all the observations. 
+  
+  It also shows that observations are 'further' from a test observation as p increases; that is they are concentrated near the boundary of the hypercube.
+  
