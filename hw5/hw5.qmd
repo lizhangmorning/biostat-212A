@@ -105,8 +105,11 @@ The set of points for which $(1 + X_1)^2 + (2 - X_2)^2 > 4$ is the set of points
 
 (c)
 
-(0,0) is classified as the blue class.
+(0,0) is classified as the blue class. We can read from the graph above. We can also get the same answer by plugging in the coordinates:
 
+$$
+(1 + 0)^2 + (2 - 0)^2 = 5 > 4
+$$
 (-1,1): red
 
 (2,2): blue
@@ -169,10 +172,132 @@ dim(Carseats_other)
 Carseats_test <- testing(data_split)
 dim(Carseats_test)
 ```
-### train support vector classifier (same as SVM with linear kernel)
 
+### Support vector classifier
 
-### SVM with polynomial kernel (tune the degree and regularization parameter $C$)
+#### Recipe
+```{r}
+svm_recipe <- 
+  recipe(
+    Sales ~ ., 
+    data = Carseats_other
+  ) %>%
+
+  # create traditional dummy variables (necessary for svm)
+  step_dummy(all_nominal_predictors()) %>%
+  # zero-variance filter
+  step_zv(all_numeric_predictors()) %>% 
+  # center and scale numeric data
+  step_normalize(all_numeric_predictors()) %>%
+  # estimate the means and standard deviations
+  prep(training = Carseats_other, retain = TRUE)
+```
+
+#### Model
+```{R}
+svm_mod <- 
+  svm_linear(
+    mode = "classification",
+    cost = tune()
+  ) %>% 
+  set_engine("kernlab")
+```
+
+#### Workflow
+```{r}
+svm_wf <- workflow() %>%
+  add_recipe(svm_recipe) %>%
+  add_model(svm_mod)
+
+svm_wf
+```
+
+#### Tuning grid
+
+```{r}
+param_grid <- grid_regular(
+  cost(range = c(-3, 2)),
+  levels = c(5)
+  )
+```
+
+#### CV
+
+Set cross-validation partitions.
+```{r}
+set.seed(212)
+
+folds <- vfold_cv(Carseats_other, v = 5)
+folds
+
+```
+
+Fit cross-validation.
+
+```{r}
+svm_fit <- svm_wf %>%
+  tune_grid(
+    resamples = folds,
+    grid = param_grid,
+    metrics = metric_set(roc_auc, accuracy)
+    )
+svm_fit
+```
+
+Visualize CV results:
+
+```{r}
+svm_fit %>%
+  collect_metrics() %>%
+  print(width = Inf) %>%
+  filter(.metric == "roc_auc" ) %>%
+  ggplot(mapping = aes(x = cost, y = mean)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Cost", y = "CV AUC") +
+  scale_x_log10()
+
+```
+
+Show the top 5 models.
+
+```{r}
+svm_fit %>%
+  show_best("roc_auc")
+```
+
+Let’s select the best model.
+
+```{r}
+best_svm <- svm_fit %>%
+  select_best("roc_auc")
+best_svm
+```
+
+#### Finalize the model
+
+```{r}
+# Final workflow
+final_wf <- svm_wf %>%
+  finalize_workflow(best_svm)
+final_wf
+```
+
+```{r}
+# Fit the whole training set, then predict the test cases
+final_fit <- 
+  final_wf %>%
+  last_fit(data_split)
+final_fit
+```
+
+```{r}
+# Test metrics
+final_fit %>% 
+  collect_metrics()
+```
+
+### SVM with polynomial kernel
 #### Recipe
 ```{r}
 svm_recipe <- 
@@ -293,7 +418,26 @@ final_fit %>%
 ```
 
 
-### SVM with radial kernel (tune the scale parameter $\gamma$ and regularization parameter $C$)
+### SVM with radial kernel
+
+#### Recipe
+```{r}
+svm_recipe <- 
+  recipe(
+    Sales ~ ., 
+    data = Carseats_other
+  ) %>%
+
+  # create traditional dummy variables (necessary for svm)
+  step_dummy(all_nominal_predictors()) %>%
+  # zero-variance filter
+  step_zv(all_numeric_predictors()) %>% 
+  # center and scale numeric data
+  step_normalize(all_numeric_predictors()) %>%
+  # estimate the means and standard deviations
+  prep(training = Carseats_other, retain = TRUE)
+svm_recipe
+```
 
 #### Model
 
@@ -401,6 +545,20 @@ final_fit %>%
   collect_metrics()
 ```
 
+### Summary
+
+| method | accuracy | roc_auc |
+|:------:|:------:|:------:|:------:|
+| classification tree |0.74 |0.756 | |
+| random forest |0.785 |0.861 | |
+| boosting |0.84 |0.920 | |
+| support vector classifier |0.88 |0.954 | |
+| svm with polynomial kernel |0.88 |0.954 | |
+| svm with radial kernel |0.88 |0.950 | |
+
+After comparing the final test AUC and accuracy to those methods you tried in HW4, we can see that the SVM methods have higher AUC and accuracy.
+
+Among the three SVM models, the SVM with linear or polynoimal kernel has the highest AUC and accuracy.
 
 
 
@@ -412,3 +570,26 @@ $$
 f(X) = \beta_0 + \beta_1 X_1 + \cdots + \beta_p X_p = \beta_0 + \beta^T X. 
 $$
 Then $f(X)=0$ defines a hyperplane in $\mathbb{R}^p$. Show that $f(x)$ is proportional to the signed distance of a point $x$ to the hyperplane $f(X) = 0$. 
+
+### Solution
+To show that $f(x)$ is proportional to the signed distance of a point $x$ to the hyperplane $f(X) = 0$, we need to consider the normal vector of the hyperplane and the geometric interpretation of the linear function $f(X)$.
+
+Let's first define the normal vector of the hyperplane $f(X) = 0$. The normal vector is given by the coefficients of the linear function $f(X)$, which are $\beta = (\beta_1, \beta_2, \ldots, \beta_p)$.
+
+Now, consider a point $x = (x_1, x_2, \ldots, x_p)$ in $\mathbb{R}^p$. The signed distance of this point $x$ to the hyperplane $f(X) = 0$ is given by:
+
+$$d(x) = \frac{f(x)}{\|\beta\|}$$
+
+where $\|\beta\|$ is the Euclidean norm (length) of the normal vector $\beta$.
+
+To show that $f(x)$ is proportional to the signed distance $d(x)$, we can substitute the expression for $f(x)$ into the equation for $d(x)$:
+
+$$d(x) = \frac{f(x)}{\|\beta\|} = \frac{\beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p}{\|\beta\|} = \frac{\beta^T x}{\|\beta\|}$$
+
+From this expression, we can see that $f(x)$ is proportional to the signed distance $d(x)$ with the proportionality constant being $\|\beta\|$, the length of the normal vector.
+
+$$f(x) = \|\beta\| \cdot d(x)$$
+
+Therefore, we have shown that $f(x)$ is proportional to the signed distance of the point $x$ to the hyperplane $f(X) = 0$, with the proportionality constant being the length of the normal vector $\|\beta\|$.
+
+The sign of $f(x)$ (or $d(x)$) indicates which side of the hyperplane the point $x$ lies on. If $f(x) > 0$, the point $x$ lies on one side of the hyperplane, and if $f(x) < 0$, the point $x$ lies on the other side of the hyperplane.
