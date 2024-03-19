@@ -1,7 +1,7 @@
 ---
 title: "Biostat 212a Homework 6"
 subtitle: "Due Mar 22, 2024 @ 11:59PM"
-author: "Li Zhang and 206305918"
+author: "Li Zhang 206305918"
 date: today
 format:
   html:
@@ -86,6 +86,36 @@ ggacf(NYSE$log_volume) + ggthemes::theme_few()
 
 Do a similar plot for (1) the correlation between $v_t$ and lag $\ell$ `Dow Jones return` $r_{t-\ell}$ and (2) correlation between $v_t$ and lag $\ell$ `Log volatility` $z_{t-\ell}$.
 
+```{r}
+seq(1, 30) %>%
+  map(function(x) {
+    cor(NYSE$log_volume, lag(NYSE$DJ_return, x),
+      use = "pairwise.complete.obs"
+    )
+  }) %>%
+  unlist() %>%
+  tibble(lag = 1:30, cor = .) %>%
+  ggplot(aes(x = lag, y = cor)) +
+  geom_hline(aes(yintercept = 0)) +
+  geom_segment(mapping = aes(xend = lag, yend = 0)) +
+  ggtitle(
+    "The autocorrelation function for `log volume` and lagged `DJ_return`"
+  )
+```
+
+```{r}
+seq(1, 30) %>% 
+  map(function(x) {cor(NYSE$log_volume , lag(NYSE$log_volatility, x), 
+                       use = "pairwise.complete.obs")}) %>% 
+  unlist() %>% 
+  tibble(lag = 1:30, cor = .) %>% 
+  ggplot(aes(x = lag, y = cor)) + 
+  geom_hline(aes(yintercept = 0)) + 
+  geom_segment(mapping = aes(xend = lag, yend = 0)) + 
+  ggtitle("AutoCorrelation between `log volume` and lagged `log volatility`")
+```
+
+
 ### Project goal
 
 Our goal is to forecast daily `Log trading volume`, using various machine learning algorithms we learnt in this class. 
@@ -103,6 +133,44 @@ Use the $R^2$ between forecast and actual values as the cross validation and tes
 ### Baseline method (20 pts)
 
 We use the straw man (use yesterday’s value of `log trading volume` to predict that of today) as the baseline method. Evaluate the $R^2$ of this method on the test data.
+
+```{r}
+# Lag: look back L trading days
+# Do not need to include, as we included them in receipe
+L = 5
+
+for(i in seq(1, L)) {
+  NYSE <- NYSE %>% 
+    mutate(!!paste("DJ_return_lag", i, sep = "") := lag(NYSE$DJ_return, i),
+           !!paste("log_volume_lag", i, sep = "") := lag(NYSE$log_volume, i),
+           !!paste("log_volatility_lag", i, sep = "") := lag(NYSE$log_volatility, i))
+}
+
+
+NYSE <-   NYSE %>% na.omit()
+```
+
+```{r}
+# Drop beginning trading days which lack some lagged features
+NYSE_other <- NYSE %>%
+  filter(train == 'TRUE') %>%
+  select(-train) 
+dim(NYSE_other)
+
+NYSE_test <- NYSE %>%
+  filter(train == 'FALSE') %>%
+  select(-train) 
+dim(NYSE_test)
+
+library(yardstick)
+# cor(NYSE_test$log_volume, NYSE_test$log_volume_lag1) %>%
+r2_test_strawman <- rsq_vec(NYSE_test$log_volume, lag(NYSE_test$log_volume, 1)) 
+print(paste("Straw man test R2: ", r2_test_strawman))
+```
+  
+  
+
+
 
 ### Autoregression (AR) forecaster (30 pts)
 
