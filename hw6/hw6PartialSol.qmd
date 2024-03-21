@@ -262,10 +262,10 @@ sliding_period(NYSE_other %>% arrange(date),
 
 - Tune AR(5) with elastic net (lasso + ridge) regularization using all 3 features on the training data, and evaluate the test performance. 
 
-### Preprocessing
+#### Recipe
 
 ```{r}
-en_receipe <- 
+en_recipe <- 
   recipe(log_volume ~ ., data = NYSE_other) %>% 
   step_dummy(all_nominal(), -all_outcomes()) %>% 
   step_normalize(all_numeric_predictors(), -all_outcomes()) %>%  
@@ -273,7 +273,7 @@ en_receipe <-
   prep(data = NYSE_other)
 ```
 
-### Model training
+#### Model
 
 ```{r}
 ### Model
@@ -285,15 +285,16 @@ enet_mod <-
   set_engine("glmnet")
 enet_mod
 ```
-
+#### Workflow
 ```{r}
 en_wf <- 
   workflow() %>%
   add_model(enet_mod) %>%
-  add_recipe(en_receipe %>% step_rm(date) %>% step_indicate_na())
+  add_recipe(en_recipe %>% step_rm(date) %>% step_indicate_na())
 en_wf
 ```
 
+#### Tuning grid
 ```{r}
 folds <- NYSE_other %>% arrange(date) %>%
     sliding_period(date, period = "month", lookback = Inf, assess_stop = 1)
@@ -309,17 +310,15 @@ month_folds <- NYSE_other %>%
 
 ```
 
-Tuning grid:
 ```{r}
 lambda_grid <- grid_regular(
-  penalty(range = c(-2, 3), trans = log10_trans()),
+  penalty(range = c(-8, -4), trans = log10_trans()),
   mixture(range = c(0, 1)),
   levels = 3
 )
 lambda_grid
 ```
-
-Cross-validation:
+#### CV
 ```{r}
 en_fit <- tune_grid(en_wf, resamples = month_folds, grid = lambda_grid) %>%
      collect_metrics() 
@@ -328,33 +327,218 @@ en_fit
 
 Visualize CV criterion:
 ```{r}
-rsq_data <- en_fit %>%
-  filter(.metric == "rsq")
-
-rsq_data %>%
+en_fit %>%
+  filter(.metric == "rsq") %>%
   ggplot(mapping = aes(x = penalty, y = mean)) + 
   geom_point() + 
   geom_line() + 
   labs(x = "Penalty", y = "CV RSQ") + 
   scale_x_log10(labels = scales::label_number())
 ```
-Show the top 5 models
 
+Select the best model:
+```{r}
+best_en <- en_fit %>% filter(.metric == "rsq") %>% top_n(1, wt = mean)
+best_en
+```
+#### Finalize the model
+```{r}
+# Final workflow
+final_wf <- en_wf %>%
+  finalize_workflow(best_en[1, ])
+final_wf
+```
 
+```{r}
+# Fit the whole training set, then predict the test cases
+final_fit <- 
+  final_wf %>%
+  last_fit(correct_split)
+final_fit
+```
 
-
+```{r}
+# Test metrics
+final_fit %>% collect_metrics()
+```
 
 ### Random forest forecaster (30pts)
 
-- Use the same features as in AR($L$) for the random forest. Tune the random forest and evaluate the test performance.
+#### Recipe
+```{r}
+rf_recipe <- 
+  recipe(log_volume ~ ., data = NYSE_other) %>% 
+  # step_dummy(all_nominal(), -all_outcomes()) %>% 
+  # step_normalize(all_numeric_predictors(), -all_outcomes()) %>%  
+  step_naomit(all_predictors()) %>%
+  step_zv(all_numeric_predictors())
+```
 
-- Hint: [Workflow: Random Forest for Prediction](https://ucla-biostat-212a.github.io/2024winter/slides/08-tree/workflow_rf_reg.html) is a good starting point.
+#### Model
+```{r}
+rf_mod <- 
+  rand_forest(
+    mode = "regression",
+    mtry = tune(),
+    trees = tune()
+  ) %>% 
+  set_engine("ranger")
+rf_mod
+```
+
+#### Workflow
+```{r}
+# rf_wf <- 
+#   workflow() %>%
+#   add_model(rf_mod) %>%
+#   add_recipe(rf_recipe %>% step_rm(date) %>% step_indicate_na())
+# rf_wf
+
+rf_wf <-
+  workflow() %>%
+  add_recipe(rf_recipe) %>%
+  add_model(rf_mod)
+rf_wf
+```
+
+#### Tuning gird
+```{r}
+rf_param_grid <- 
+  grid_regular(
+    mtry(range = c(1L, 5L)),
+    trees(range = c(100L, 300L)),
+    levels = c(3,5)
+  )
+```
+
+#### CV
+```{r}
+set.seed(203)
+folds <- vfold_cv(NYSE_other, v = 5)
+folds
+```
+
+```{r}
+rf_fit <- rf_wf %>%
+  tune_grid(
+    resamples = folds,
+    grid = rf_param_grid,
+    metrics = metric_set(rmse, rsq)
+    )
+rf_fit
+```
+
+Visualize CV results:
+```{r}
+rf_fit %>%
+  collect_metrics() %>%
+  print(width = Inf) %>%
+  filter(.metric == "rsq") %>%
+  mutate(mtry = as.factor(mtry)) %>%
+  ggplot(mapping = aes(x = trees, y = mean, color = mtry)) +
+  # geom_point() + 
+  geom_line() + 
+  labs(x = "Num. of Trees", y = "CV rsq")
+```
+
+Show the top 5 models:
+```{r}
+rf_fit %>%
+  show_best("rsq")
+```
+
+Select the best:
+
+```{r}
+best_rf <- rf_fit %>%
+  select_best("rsq")
+best_rf
+```
+
+#### Finalize the model
+```{r}
+# Final workflow
+final_wf <- rf_wf %>%
+  finalize_workflow(best_rf)
+final_wf
+```
+
+```{r}
+# Fit the whole training set, then predict the test cases
+final_fit <- 
+  final_wf %>%
+  last_fit(correct_split)
+final_fit
+```
+
+```{r}
+# Test metrics
+final_fit %>% collect_metrics()
+```
 
 ### Boosting forecaster (30pts)
 
-- Use the same features as in AR($L$) for the boosting. Tune the boosting algorithm and evaluate the test performance.
-
-- Hint: [Workflow: Boosting tree for Prediction](https://ucla-biostat-212a.github.io/2024winter/slides/08-tree/workflow_boosting_reg.html) is a good starting point.
+#### Recipe
+```{r}
+gb_receipe <- 
+  recipe(log_volume ~ ., data = NYSE_other) %>% 
+  # step_dummy(all_nominal(), -all_outcomes()) %>% 
+  # step_normalize(all_numeric_predictors(), -all_outcomes()) %>%  
+  step_naomit(all_predictors()) %>%
+  step_zv(all_numeric_predictors()) %>% 
+  prep(data = NYSE_other, retain = TRUE)
+```
+#### Model
+```{r}
+gb_mod <- 
+  boost_tree(
+    mode = "regression",
+    trees = 1000, 
+    tree_depth = tune(),
+    learn_rate = tune()
+  ) %>% 
+  set_engine("xgboost")
+gb_mod
+```
+#### Workflow
+```{r}
+gb_wf <- 
+  workflow() %>%
+  add_model(gb_mod) %>%
+  add_recipe(gb_receipe %>% step_rm(date) %>% step_rm(day_of_week) %>% step_indicate_na())
+gb_wf
+```
+#### Tuning grid
+```{r}
+param_grid <- grid_regular(
+  tree_depth(range = c(1L, 4L)),
+  learn_rate(range = c(-3, -0.5), trans = log10_trans()),
+  levels = c(4, 10)
+  )
+param_grid
+```
+#### CV
+```{r}
+gb_fit <- gb_wf %>%
+  tune_grid(
+    resamples = folds,
+    grid = param_grid,
+    metrics = metric_set(rmse, rsq)
+    )
+gb_fit
+```
+Visualize CV criterion:
+```{r}
+gb_fit %>%
+  collect_metrics() %>%
+  print(width = Inf) %>%
+  filter(.metric == "rsq") %>%
+  ggplot(mapping = aes(x = learn_rate, y = mean, color = factor(tree_depth))) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Learning Rate", y = "RSQ") +
+  scale_x_log10()
+```
 
 
 ### Summary (30pts)
@@ -365,8 +549,8 @@ Summarize the performance of different machine learning forecasters in the follo
 
 | Method | CV $R^2$ | Test $R^2$ |
 |:------:|:------:|:------:|:------:|
-| Baseline | | | |
-| AR(5) | | | |
+| Baseline | |0.35 | |
+| AR(5) | |0.69 | |
 | Random Forest | | | |
 | Boosting | | | |
 
