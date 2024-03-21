@@ -599,14 +599,47 @@ Summarize the performance of different machine learning forecasters in the follo
 - [MOIRAI: Salesforce’s Foundation Model for Time-Series Forecasting](https://towardsdatascience.com/moirai-salesforces-foundation-model-for-time-series-forecasting-4eff6c34093d)
 
 ## ISL Exercise 12.6.13 (90 pts)
-### 12.6.13 (b) (30 pts)
-### PCA and UMAP (30 pts)
-### 12.6.13 (c) (30 pts)
 
 ```{r}
 Ch12Ex13 <- read_csv("~/212A/slides/data/Ch12Ex13.csv", col_names = paste("ID", 1:40, sep = ""))
 ```
+```{r}
+# hc.complete <- hclust(as.dist(1 - cor(Ch12Ex13)), method = "complete")
+# plot(hc.complete)
+# 
+# hc.average <- hclust(as.dist(1 - cor(Ch12Ex13)), method = "average")
+# plot(hc.average)
+# 
+# hc.single <- hclust(as.dist(1 - cor(Ch12Ex13)), method = "single")
+# plot(hc.single)
+# 
+# hc.centroid <- hclust(as.dist(1 - cor(Ch12Ex13)), method = "centroid")
+# plot(hc.centroid)
+```
 
+### 12.6.13 (b) (30 pts)
+
+The samples are consistently separated into two groups regardless of the linkage method used, although the specific results vary depending on the chosen linkage method.
+
+::: {.panel-tabset}
+
+#### Single linkage
+```{r}
+hc_spec <- hier_clust(
+  # num_clusters = 3,
+  linkage_method = "single"
+)
+hc_fit <- hc_spec %>%
+  fit(~ .,
+    data = as.data.frame(t(Ch12Ex13)) 
+  )
+
+hc_fit %>%
+  summary()
+
+hc_fit$fit %>% plot()
+```
+#### Average linkage
 ```{r}
 set.seed(838383)
 hc_spec <- hier_clust(
@@ -628,7 +661,116 @@ hc_fit %>%
 hc_fit$fit %>% plot()
 ```
 
+#### Complete linkage
+```{r}
+hc_spec <- hier_clust(
+  # num_clusters = 3,
+  linkage_method = "complete"
+)
 
+
+hc_fit <- hc_spec %>%
+  fit(~ .,
+    data = as.data.frame(t(Ch12Ex13)) 
+  )
+
+hc_fit %>%
+  summary()
+```
+```{r}
+hc_fit$fit %>% plot()
+```
+
+#### Centroid linkage
+```{r}
+hc_spec <- hier_clust(
+  # num_clusters = 3,
+  linkage_method = "centroid"
+)
+
+hc_fit <- hc_spec %>%
+  fit(~ .,
+    data = as.data.frame(t(Ch12Ex13)) 
+  )
+
+hc_fit %>%
+  summary()
+```
+```{r}
+hc_fit$fit %>% plot()
+```
+
+:::
+
+### PCA and UMAP (30 pts)
+
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+```
+
+1. PCA
+```{r}
+transposed_gene <- as_tibble(t(Ch12Ex13)) |>
+  mutate(group = rep(c("healthy", "diseased"), each = 20))
+pca_rec <- recipe(~., data = transposed_gene) |>
+  update_role(group, new_role = "id") |>
+  step_normalize(all_predictors()) |>
+  step_pca(all_predictors())
+pca_prep <- prep(pca_rec)
+pca_prep
+```
+
+```{r}
+library(tidytext)
+tidied_pca <- tidy(pca_prep, 2)
+
+tidied_pca |>
+  filter(component %in% paste0("PC", 1:4)) |>
+  group_by(component) |>
+  top_n(8, abs(value)) |>
+  ungroup() |>
+  mutate(terms = reorder_within(terms, abs(value), component)) |>
+  ggplot(aes(abs(value), terms, fill = value > 0)) +
+  geom_col() +
+  facet_wrap(~component, scales = "free_y") +
+  scale_y_reordered() +
+  labs(
+    x = "Absolute value of contribution",
+    y = NULL, fill = "Positive?"
+  )
+```
+
+```{r}
+juice(pca_prep) %>%
+  ggplot(aes(PC1, PC2)) +
+  geom_point(aes(color = group), alpha = 0.7, size = 2) +
+  #geom_text(check_overlap = TRUE, hjust = "inward") +
+  labs(color = NULL)
+```
+It seems that the first two principal components separate the samples into the two groups.
+
+2. UMAP
+```{r}
+library(embed)
+umap_rec <- recipe(~., data = transposed_gene) |>
+  update_role(group, new_role = "id") |>
+  step_normalize(all_predictors()) |>
+  step_umap(all_predictors())
+umap_prep <- prep(umap_rec)
+umap_prep
+```
+
+```{r}
+juice(umap_prep) %>%
+  ggplot(aes(UMAP1, UMAP2)) +
+  geom_point(aes(color = group), alpha = 0.7, size = 2) +
+#  geom_text(check_overlap = TRUE, hjust = "inward") +
+  labs(color = NULL)
+```
+
+### 12.6.13 (c) (30 pts)
 ```{r}
 grp = factor(rep(c(1, 0), each = 20))
 
@@ -638,17 +780,18 @@ regression <- function(y) {
   return(pv)
 }
 
-
 out <- tibble(gene = seq(1, nrow(Ch12Ex13)),
               p_values = unlist(purrr:: map(1:nrow(Ch12Ex13), ~regression(as.matrix(Ch12Ex13)[.x, ]))))
 ```
 
+- These genes differ the most across the two groups(p < 0.05):
 ```{r}
 out %>% arrange(p_values) %>% head(10)
 
 # sig <- out %>% arrange(p_values) %>% filter(p_values < 0.05/nrow(Ch12Ex13))
 sig <- out %>% arrange(p_values) %>% filter(p_values < 0.05 )
 ```
+
 
 ```{r}
 # install.packages("pheatmap")
@@ -660,7 +803,6 @@ library(heatmaply) ## for constructing interactive heatmap
 ```
 
 ```{r}
-
 #create data frame for annotations
 dfh <- data.frame(sample=as.character(colnames(Ch12Ex13)), status = "disease") %>%
                 column_to_rownames("sample")
