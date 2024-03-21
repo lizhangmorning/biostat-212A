@@ -361,7 +361,10 @@ final_fit
 # Test metrics
 final_fit %>% collect_metrics()
 ```
-
+```{r}
+# en_pred <- predict(final_fit, new_data = NYSE_test)$.pred
+# en_pred
+```
 ### Random forest forecaster (30pts)
 
 #### Recipe
@@ -370,7 +373,7 @@ rf_recipe <-
   recipe(log_volume ~ ., data = NYSE_other) %>% 
   # step_dummy(all_nominal(), -all_outcomes()) %>% 
   # step_normalize(all_numeric_predictors(), -all_outcomes()) %>%  
-  step_naomit(all_predictors()) %>%
+  step_naomit(log_volume) %>%
   step_zv(all_numeric_predictors())
 ```
 
@@ -388,12 +391,6 @@ rf_mod
 
 #### Workflow
 ```{r}
-# rf_wf <- 
-#   workflow() %>%
-#   add_model(rf_mod) %>%
-#   add_recipe(rf_recipe %>% step_rm(date) %>% step_indicate_na())
-# rf_wf
-
 rf_wf <-
   workflow() %>%
   add_recipe(rf_recipe) %>%
@@ -401,14 +398,15 @@ rf_wf <-
 rf_wf
 ```
 
-#### Tuning gird
+#### Tuning grid
 ```{r}
 rf_param_grid <- 
   grid_regular(
     mtry(range = c(1L, 5L)),
-    trees(range = c(100L, 300L)),
-    levels = c(3,5)
+    trees(range = c(300L, 900L)),
+    levels = c(3, 5)
   )
+rf_param_grid
 ```
 
 #### CV
@@ -464,7 +462,12 @@ final_wf
 ```
 
 ```{r}
-# Fit the whole training set, then predict the test cases
+# # Fit the whole training set, then predict the test cases
+# train_split <- new_rset(NYSE_other, ids = "train")
+# test_split <- new_rset(NYSE_test, ids = "test")
+# 
+# # Combine the rsplit objects into a manual_rset object
+# data_split <- manual_rset(list(train = train_split, test = test_split), ids = c("train", "test"))
 final_fit <- 
   final_wf %>%
   last_fit(correct_split)
@@ -480,13 +483,17 @@ final_fit %>% collect_metrics()
 
 #### Recipe
 ```{r}
-gb_receipe <- 
-  recipe(log_volume ~ ., data = NYSE_other) %>% 
-  # step_dummy(all_nominal(), -all_outcomes()) %>% 
-  # step_normalize(all_numeric_predictors(), -all_outcomes()) %>%  
-  step_naomit(all_predictors()) %>%
-  step_zv(all_numeric_predictors()) %>% 
+gb_recipe <- 
+  recipe(
+    log_volume ~ ., 
+    data = NYSE_other
+  ) %>%
+  step_dummy(all_nominal()) %>%
+  step_naomit(log_volume) %>%
+  step_zv(all_numeric_predictors()) %>%
+  step_normalize(all_numeric_predictors()) %>%
   prep(data = NYSE_other, retain = TRUE)
+gb_recipe
 ```
 #### Model
 ```{r}
@@ -505,7 +512,8 @@ gb_mod
 gb_wf <- 
   workflow() %>%
   add_model(gb_mod) %>%
-  add_recipe(gb_receipe %>% step_rm(date) %>% step_rm(day_of_week) %>% step_indicate_na())
+  add_recipe(gb_receipe %>% step_rm(date) %>%
+  step_indicate_na())
 gb_wf
 ```
 #### Tuning grid
@@ -539,6 +547,26 @@ gb_fit %>%
   labs(x = "Learning Rate", y = "RSQ") +
   scale_x_log10()
 ```
+#### Finalize the model
+```{r}
+# Final workflow
+final_wf <- rf_wf %>%
+  finalize_workflow(best_rf)
+final_wf
+```
+
+```{r}
+# Fit the whole training set, then predict the test cases
+final_fit <- 
+  final_wf %>%
+  last_fit(correct_split)
+final_fit
+```
+
+```{r}
+# Test metrics
+final_fit %>% collect_metrics()
+```
 
 
 ### Summary (30pts)
@@ -550,8 +578,8 @@ Summarize the performance of different machine learning forecasters in the follo
 | Method | CV $R^2$ | Test $R^2$ |
 |:------:|:------:|:------:|:------:|
 | Baseline | |0.35 | |
-| AR(5) | |0.69 | |
-| Random Forest | | | |
+| AR(5) |0.3807083 |0.6883465 ||
+| Random Forest |0.6482922 |0.6545564 | |
 | Boosting | | | |
 
 ### Extension reading   
