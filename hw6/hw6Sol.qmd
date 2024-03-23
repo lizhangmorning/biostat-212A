@@ -617,7 +617,7 @@ Summarize the performance of different machine learning forecasters in the follo
 ## ISL Exercise 12.6.13 (90 pts)
 
 ```{r}
-Ch12Ex13 <- read_csv("~/212A/slides/data/Ch12Ex13.csv", col_names = paste("ID", 1:40, sep = ""))
+Ch12Ex13 <- read_csv("/home/zhangli200102/212A/Ch12Ex13.csv", col_names = paste("ID", 1:40, sep = ""))
 ```
 
 
