@@ -167,7 +167,7 @@ NYSE <-   NYSE %>% na.omit()
 # Drop beginning trading days which lack some lagged variables
 NYSE_other <- NYSE %>% 
   filter(train == 'TRUE') %>%
-  select(-train) %>%
+  select(-c(train,DJ_return,log_volatility)) %>%
   drop_na()
 dim(NYSE_other)
 ```
@@ -175,7 +175,7 @@ dim(NYSE_other)
 ```{r}
 NYSE_test = NYSE %>% 
   filter(train == 'FALSE') %>%
-  select(-train) %>%
+  select(-c(train,DJ_return,log_volatility)) %>%
   drop_na()
 dim(NYSE_test)
 ```
@@ -350,15 +350,28 @@ final_wf_en
 ```
 
 ```{r}
-final_fit_en <- final_wf_en %>%
-  fit(data = NYSE_other)
+# # Fit the final workflow on NYSE_other data
+# final_fit_en <- final_wf_en %>%
+#   fit(data = NYSE_other)
+# 
+# # Make predictions on the test data (NYSE_test)
+# predictions <- predict(final_fit_en, new_data = NYSE_test) %>%
+#   bind_cols(NYSE_test)
+# 
+# # Calculate metrics for the predictions
+# metrics(predictions, truth = log_volume, estimate = .pred)
 
-# predict the test case
-en_pred <- predict(final_fit_en, new_data = NYSE_test)$.pred
+data_split = initial_time_split(NYSE%>% arrange(date),
+                                prop=sum(NYSE$train)/length(NYSE$train))
+final_fit_en <- 
+  final_wf_en %>%
+  last_fit(data_split)
+final_fit_en
 
-# calculate test rsq
-rsq_en <- cor(NYSE_test$log_volume, en_pred) %>% round(2)
-rsq_en
+# Test metrics
+final_fit_en %>% 
+  collect_metrics()
+
 ```
 ### Random forest forecaster (30pts)
 
@@ -398,8 +411,8 @@ rf_wf
 rf_param_grid <- 
   grid_regular(
     mtry(range = c(1L, 5L)),
-    trees(range = c(300L, 900L)),
-    levels = c(3, 5)
+    trees(range = c(300L, 500L)),
+    levels = c(3, 3)
   )
 rf_param_grid
 ```
@@ -452,14 +465,25 @@ final_wf_rf
 ```
 
 ```{r}
-final_fit_rf <- final_wf_rf %>%
-  fit(data = NYSE_other)
+# # Fit the final workflow on NYSE_other data
+# final_fit_rf <- final_wf_rf %>%
+#   fit(data = NYSE_other)
+# 
+# # Make predictions on the test data (NYSE_test)
+# predictions <- predict(final_fit_rf, new_data = NYSE_test) %>%
+#   bind_cols(NYSE_test)
+# 
+# # Calculate metrics for the predictions
+# metrics(predictions, truth = log_volume, estimate = .pred)
 
-# predict the test case
-rf_pred <- predict(final_fit_rf, new_data = NYSE_test)$.pred
+final_fit_rf <- 
+  final_wf_rf %>%
+  last_fit(data_split)
+final_fit_rf
 
-# calculate test rsq
-rsq_rf <- cor(NYSE_test$log_volume, rf_pred) %>% round(2)
+# Test metrics
+final_fit_rf %>% 
+  collect_metrics()
 ```
 
 ### Boosting forecaster (30pts)
@@ -483,7 +507,7 @@ gb_recipe
 gb_mod <- 
   boost_tree(
     mode = "regression",
-    trees = 1000, 
+    trees = 700, 
     tree_depth = tune(),
     learn_rate = tune()
   ) %>% 
@@ -502,9 +526,9 @@ gb_wf
 #### Tuning grid
 ```{r}
 param_grid <- grid_regular(
-  tree_depth(range = c(1L, 4L)),
+  tree_depth(range = c(1L, 3L)),
   learn_rate(range = c(-3, -0.5), trans = log10_trans()),
-  levels = c(4, 10)
+  levels = c(3, 5)
   )
 param_grid
 ```
@@ -514,7 +538,8 @@ gb_fit <- gb_wf %>%
   tune_grid(
     resamples = folds,
     grid = param_grid,
-    metrics = metric_set(rmse, rsq)
+    metrics = metric_set(rmse, rsq),
+    control=control_grid(verbose = TRUE)
     )
 gb_fit
 ```
@@ -552,12 +577,25 @@ final_wf_gb
 ```
 
 ```{r}
-final_fit_gb <- final_wf_gb %>%
-  fit(data = NYSE_other)
+# # Fit the final workflow on NYSE_other data
+# final_fit_gb <- final_wf_gb %>%
+#   fit(data = NYSE_other)
+# 
+# # Make predictions on the test data (NYSE_test)
+# predictions <- predict(final_fit_gb, new_data = NYSE_test) %>%
+#   bind_cols(NYSE_test)
+# 
+# # Calculate metrics for the predictions
+# metrics(predictions, truth = log_volume, estimate = .pred)
 
-predictions <- predict(final_fit_gb, new_data = NYSE_test) %>% bind_cols(NYSE_test)
+final_fit_gb <- 
+  final_wf_gb %>%
+  last_fit(data_split)
+final_fit_gb
 
-metrics(predictions, truth = log_volume, estimate = .pred)
+# Test metrics
+final_fit_gb %>% 
+  collect_metrics()
 ```
 
 ### Summary (30pts)
@@ -568,10 +606,10 @@ Summarize the performance of different machine learning forecasters in the follo
 
 | Method | CV $R^2$ | Test $R^2$ |
 |:------:|:------:|:------:|:------:|
-| Baseline | |0.35 | |
-| AR(5) |0.38 |0.74 ||
-| Random Forest |0.6482922 |0.6545564 | |
-| Boosting |0.6676416	 |0.6820797 | |
+| Baseline |-- |0.35 | |
+| AR(5) |0.30 |0.46 ||
+| Random Forest |0.28 |0.43 | |
+| Boosting |0.29 |0.45 | |
 
 ### Extension reading   
 - [MOIRAI: Salesforce’s Foundation Model for Time-Series Forecasting](https://towardsdatascience.com/moirai-salesforces-foundation-model-for-time-series-forecasting-4eff6c34093d)
@@ -581,19 +619,7 @@ Summarize the performance of different machine learning forecasters in the follo
 ```{r}
 Ch12Ex13 <- read_csv("~/212A/slides/data/Ch12Ex13.csv", col_names = paste("ID", 1:40, sep = ""))
 ```
-```{r}
-# hc.complete <- hclust(as.dist(1 - cor(Ch12Ex13)), method = "complete")
-# plot(hc.complete)
-# 
-# hc.average <- hclust(as.dist(1 - cor(Ch12Ex13)), method = "average")
-# plot(hc.average)
-# 
-# hc.single <- hclust(as.dist(1 - cor(Ch12Ex13)), method = "single")
-# plot(hc.single)
-# 
-# hc.centroid <- hclust(as.dist(1 - cor(Ch12Ex13)), method = "centroid")
-# plot(hc.centroid)
-```
+
 
 ### 12.6.13 (b) (30 pts)
 
